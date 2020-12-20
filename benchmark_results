@@ -1,0 +1,4 @@
+Factoring 10 large integers using fermat method
+
+With BigUint: 124.137605
+With gmp: 119.670101
