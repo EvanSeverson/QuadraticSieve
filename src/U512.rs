@@ -130,8 +130,9 @@ impl Add<U512> for U512 {
         let mut carry_val: u64 = 0;
         for i in (0..8).rev() {
             let (zi, carry) = x[i].overflowing_add(y[i]);
-            z[i] = zi + carry_val;
-            carry_val = match carry {
+            let (zi, carry2) = zi.overflowing_add(carry_val);
+            z[i] = zi;
+            carry_val = match carry || carry2 {
                 true => 1,
                 false => 0,
             };
@@ -176,8 +177,9 @@ impl Sub for U512 {
         let mut carry_val: u64 = 0;
         for i in (0..8).rev() {
             let (zi, borrow) = x[i].overflowing_sub(y[i]);
-            z[i] = zi - carry_val;
-            carry_val = match borrow {
+            let (zi, borrow2) = zi.overflowing_sub(carry_val);
+            z[i] = zi;
+            carry_val = match borrow || borrow2 {
                 true => 1,
                 false => 0,
             };
