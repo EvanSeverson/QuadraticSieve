@@ -2,12 +2,37 @@ use num_traits::{Num, One, Zero};
 use std::ops::{Mul, Add, Rem, Div, Sub};
 use num_integer::Integer;
 use std::cmp::Ordering;
+use std::fmt::{Display, Formatter, Error};
 
-struct U512 {
-    first: u128,
-    second: u128,
-    third: u128,
-    fourth: u128,
+#[derive(Debug)]
+pub struct U512 {
+    x7: u64,
+    x6: u64,
+    x5: u64,
+    x4: u64,
+    x3: u64,
+    x2: u64,
+    x1: u64,
+    x0: u64,
+}
+
+impl U512 {
+    pub fn asArray(&self) -> [u64; 8] {
+        return [self.x7, self.x6, self.x5, self.x4, self.x3, self.x2, self.x1, self.x0, ];
+    }
+}
+
+pub fn fromArray(arr: [u64; 8]) -> U512 {
+    return U512{
+        x7: arr[0],
+        x6: arr[1],
+        x5: arr[2],
+        x4: arr[3],
+        x3: arr[4],
+        x2: arr[5],
+        x1: arr[6],
+        x0: arr[7],
+    }
 }
 
 impl Integer for U512 {
@@ -93,119 +118,72 @@ impl Zero for U512 {
     }
 }
 
-impl Mul<U512> for U512 {
-    type Output = U512;
-
-    fn mul(self, rhs: U512) -> Self::Output {
-        let n64 = 1 << 64;
-        
-        let x1 = self.first >> 64;
-        let x2 = self.first % n64;
-        let x3 = self.second >> 64;
-        let x4 = self.second % n64;
-        let x5 = self.third >> 64;
-        let x6 = self.third % n64;
-        let x7 = self.fourth >> 64;
-        let x8 = self.fourth % n64;
-
-        let y1 = rhs.first >> 64;
-        let y2 = rhs.first % n64;
-        let y3 = rhs.second >> 64;
-        let y4 = rhs.second % n64;
-        let y5 = rhs.third >> 64;
-        let y6 = rhs.third % n64;
-        let y7 = rhs.fourth >> 64;
-        let y8 = rhs.fourth % n64;
-
-        let z11 = x1 * y8;
-        let z12 = x2 * y7;
-        let z13 = x3 * y6;
-        let z14 = x4 * y5;
-        let z15 = x5 * y4;
-        let z16 = x6 * y3;
-        let z17 = x7 * y2;
-        let z18 = x8 * y1;
-
-        let z21 = x1 * y7;
-        let z22 = x2 * y6;
-        let z23 = x3 * y5;
-        let z24 = x4 * y4;
-        let z25 = x5 * y3;
-        let z26 = x6 * y2;
-        let z27 = x7 * y1;
-
-        let z31 = x1 * y6;
-        let z32 = x2 * y5;
-        let z33 = x3 * y4;
-        let z34 = x4 * y3;
-        let z35 = x5 * y2;
-        let z36 = x6 * y1;
-
-        let z41 = x1 * y5;
-        let z42 = x2 * y4;
-        let z43 = x3 * y3;
-        let z44 = x4 * y2;
-        let z45 = x5 * y1;
-
-        let z51 = x1 * y4;
-        let z52 = x2 * y3;
-        let z53 = x3 * y2;
-        let z54 = x4 * y1;
-
-        let z61 = x1 * y3;
-        let z62 = x2 * y2;
-        let z63 = x3 * y1;
-
-        let z71 = x1 * y2;
-        let z72 = x2 * y1;
-
-        let z81 = x1 * y1;
-
-        let mut overflow = z81 / n64;
-        let mut overflow2: u128 = 0;
-        let z8 = z81 % n64;
-
-        // let mut z7;
-
-        overflow = 0;
-        overflow2 = 0;
-
-        return U512 { first: 0, second: 0, third: 0, fourth: 0 }
-
-    }
-}
-
 impl Add<U512> for U512 {
     type Output = U512;
 
     fn add(self, rhs: U512) -> Self::Output {
-        let (fourth, overflow4) = self.fourth.overflowing_add(rhs.fourth);
+        let x = self.asArray();
+        let y = rhs.asArray();
 
-        let (third, mut overflow3) = self.third.overflowing_add(rhs.third);
-        if overflow4 {
-            let (third, tmp) = third.overflowing_add(1);
-            overflow3 |= tmp;
+        let mut z: [u64; 8] = [0; 8];
+        
+        let mut carry_val: u64 = 0;
+        for i in (0..8).rev() {
+            let (zi, carry) = x[i].overflowing_add(y[i]);
+            z[i] = zi + carry_val;
+            carry_val = match carry {
+                true => 1,
+                false => 0,
+            };
         }
-
-        let (second, mut overflow2) = self.second.overflowing_add(rhs.second);
-        if overflow3 {
-            let (second, tmp) = second.overflowing_add(1);
-            overflow2 |= tmp;
-        }
-
-        let mut first = self.first + rhs.first;
-        if overflow2 {
-            first += 1;
-        }
-        return U512{first, second, third, fourth};
+        
+        return fromArray(z);
     }
 }
 
-impl Rem for U512 {
+impl Mul<U512> for U512 {
     type Output = U512;
 
-    fn rem(self, rhs: Self) -> Self::Output {
-        unimplemented!()
+    fn mul(self, rhs: U512) -> Self::Output {
+        let x = self.asArray();
+        let y = rhs.asArray();
+
+        let mut z: [u64; 8] = [0; 8];
+
+        let mut carry_val: u128 = 0;
+        for i in (0..8).rev() {
+            for j in ((7 - i)..8).rev() {
+                let k = (i + j - 7) as usize;
+                carry_val = (x[i] as u128) * (y[j] as u128) + (z[k] as u128) + carry_val;
+
+                z[k] = carry_val as u64;
+                carry_val = carry_val >> 64;
+            }
+        }
+        return fromArray(z);
+    }
+}
+
+impl Sub for U512 {
+    type Output = U512;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let x = self.asArray();
+        let y = rhs.asArray();
+
+        let mut z: [u64; 8] = [0; 8];
+
+        let mut carry_val: u64 = 0;
+        for i in (0..8).rev() {
+            let (zi, borrow) = x[i].overflowing_sub(y[i]);
+            z[i] = zi - carry_val;
+            carry_val = match borrow {
+                true => 1,
+                false => 0,
+            };
+        }
+
+        return fromArray(z);
     }
 }
 
@@ -217,10 +195,17 @@ impl Div for U512 {
     }
 }
 
-impl Sub for U512 {
+impl Rem for U512 {
     type Output = U512;
 
-    fn sub(self, rhs: Self) -> Self::Output {
+    fn rem(self, rhs: Self) -> Self::Output {
         unimplemented!()
+    }
+}
+
+impl Display for U512 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "{},{},{},{},{},{},{},{}",
+               self.x7, self.x6, self.x5, self.x4, self.x3, self.x2, self.x1, self.x0)
     }
 }
