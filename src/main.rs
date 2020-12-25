@@ -5,12 +5,58 @@ use std::str::FromStr;
 use num_integer::{Roots, Integer};
 use std::time::SystemTime;
 use num_traits::{Num, One, Zero};
+use rand::Rng;
+use std::ops::Mul;
 
 fn main() {
-    let x = U512::fromArray([0,0,0,0,0,0,0,8]);
-    let y = U512::fromArray([1,2,3,4,5,6,7,18446744073709551615]);
 
-    println!("{}", y - x);
+    let now = SystemTime::now();
+
+    let mut sum = U512::fromArray([0,0,0,0,0,0,0,0]);
+
+    for i in 1..100 {
+        let mut rng = rand::thread_rng();
+        let secret_number = rng.gen_range(1, 100);
+
+        let v1 = U512::fromArray([
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value())]);
+
+        let v2 = U512::fromArray([
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value()),
+            rng.gen_range(0, u64::max_value())]);
+
+        let v3 = v1 * v2;
+
+        let v4 = v1.mulSlow(v2);
+
+        println!("{}", v3 - v4);
+
+        // sum = sum + v3;
+
+        // println!("{}", v3);
+    }
+    println!("{}", sum);
+
+    match now.elapsed() {
+        Ok(elapsed) => {
+            println!("took {} millis", elapsed.as_millis());}
+        Err(e) => {
+            println!("Error: {:?}", e);
+        }
+    }
 
     // println!("Please enter the number you wish to factor");
     //
