@@ -154,7 +154,7 @@ impl Mul<U512> for U512 {
         let mut carry_val: u128 = 0;
         for i in (0..8).rev() {
             for j in ((7 - i)..8).rev() {
-                let k = (i + j - 7) as usize;
+                let k = (i + j - 7);
                 carry_val = (x[i] as u128) * (y[j] as u128) + (z[k] as u128) + carry_val;
 
                 z[k] = carry_val as u64;
