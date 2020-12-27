@@ -5,6 +5,9 @@ use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Error};
 
 #[derive(Debug)]
+#[derive(Copy, Clone)]
+#[derive(Eq, PartialEq)]
+#[derive(PartialOrd)]
 pub struct U512 {
     x7: u64,
     x6: u64,
@@ -20,6 +23,32 @@ impl U512 {
     pub fn asArray(&self) -> [u64; 8] {
         return [self.x7, self.x6, self.x5, self.x4, self.x3, self.x2, self.x1, self.x0, ];
     }
+
+    pub fn fromArray(arr: [u64; 8]) -> U512 {
+        return U512{
+            x7: arr[0],
+            x6: arr[1],
+            x5: arr[2],
+            x4: arr[3],
+            x3: arr[4],
+            x2: arr[5],
+            x1: arr[6],
+            x0: arr[7],
+        }
+    }
+
+    pub fn from(x: u128) -> U512 {
+        return U512{
+            x7: 0,
+            x6: 0,
+            x5: 0,
+            x4: 0,
+            x3: 0,
+            x2: 0,
+            x1: (x >> 64) as u64,
+            x0: x as u64,
+        }
+    }
 }
 
 pub fn fromArray(arr: [u64; 8]) -> U512 {
@@ -32,6 +61,19 @@ pub fn fromArray(arr: [u64; 8]) -> U512 {
         x2: arr[5],
         x1: arr[6],
         x0: arr[7],
+    }
+}
+
+pub fn from(x: u128) -> U512 {
+    return U512{
+        x7: 0,
+        x6: 0,
+        x5: 0,
+        x4: 0,
+        x3: 0,
+        x2: 0,
+        x1: (x >> 64) as u64,
+        x0: x as u64,
     }
 }
 
@@ -75,21 +117,6 @@ impl Integer for U512 {
 
 impl Ord for U512 {
     fn cmp(&self, other: &Self) -> Ordering {
-        unimplemented!()
-    }
-}
-
-impl Eq for U512 {
-}
-
-impl PartialOrd for U512 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        unimplemented!()
-    }
-}
-
-impl PartialEq for U512 {
-    fn eq(&self, other: &Self) -> bool {
         unimplemented!()
     }
 }
@@ -146,6 +173,10 @@ impl Mul<U512> for U512 {
     type Output = U512;
 
     fn mul(self, rhs: U512) -> Self::Output {
+        let zero = U512::from(0);
+        if self == zero || rhs == zero {
+            return zero;
+        }
         let x = self.asArray();
         let y = rhs.asArray();
 
@@ -154,7 +185,7 @@ impl Mul<U512> for U512 {
         let mut carry_val: u128 = 0;
         for i in (0..8).rev() {
             for j in ((7 - i)..8).rev() {
-                let k = (i + j - 7);
+                let k = i + j - 7;
                 carry_val = (x[i] as u128) * (y[j] as u128) + (z[k] as u128) + carry_val;
 
                 z[k] = carry_val as u64;
