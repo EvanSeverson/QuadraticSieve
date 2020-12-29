@@ -205,7 +205,7 @@ mod tests {
     use crate::U512::U512;
 
     #[test]
-    fn testAdditionU128() {
+    fn test_addition_U128() {
         let mut a: u128 = 2;
         let mut b: u128 = 3;
         for _ in 1..1000000 {
@@ -224,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    fn testSubtractionU128() {
+    fn test_subtraction_U128() {
         let mut a: u128 = 2;
         let mut b: u128 = 3;
         for _ in 1..1000000 {
@@ -248,7 +248,7 @@ mod tests {
     }
 
     #[test]
-    fn testAdditionSubtractionInverse() {
+    fn test_addition_subtraction_inverse() {
         let mut a = U512::from(2);
         let mut b = U512::from(3);
 
@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn testAdditionCommutative() {
+    fn test_addition_commutative() {
         let mut a = U512::from(2);
         let mut b = U512::from(3);
 
@@ -284,7 +284,7 @@ mod tests {
     // the test is run with --release then it runs about 60x faster so you can increase the number
     // of test cases.
     #[test]
-    fn testMultiplicationVsBinaryAddition() {
+    fn test_multiplication_vs_binary_addition() {
         let mut a = U512::from(2);
         let mut b = U512::from(3);
 
@@ -322,6 +322,20 @@ mod tests {
             }
 
             assert_eq!(c, c2, "Testing multiplying {} and {}", a, b);
+
+            a = a * a + U512::from(1);
+            b = b * b + U512::from(1);
+        }
+    }
+
+    #[test]
+    fn test_multiplication_commutative() {
+        let mut a = U512::from(2);
+        let mut b = U512::from(3);
+
+        for _ in 1..1000000 {
+
+            assert_eq!(a * b, b * a);
 
             a = a * a + U512::from(1);
             b = b * b + U512::from(1);
