@@ -1,5 +1,5 @@
 use num_traits::{Num, One, Zero};
-use std::ops::{Mul, Add, Rem, Div, Sub};
+use std::ops::{Mul, Add, Rem, Div, Sub, Shl, Shr};
 use num_integer::Integer;
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Error};
@@ -194,6 +194,41 @@ impl Rem for U512 {
     }
 }
 
+impl Shl<u32> for U512 {
+    type Output = U512;
+
+    fn shl(self, rhs: u32) -> Self::Output {
+        let mut arr = [0u64; 8];
+        let datumShift = (rhs / 64) as usize;
+        let bitShift = rhs % 64;
+
+        arr[datumShift] = self.data[0] << bitShift;
+        for i in (datumShift + 1)..8 {
+            arr[i] = (self.data[i - datumShift] << bitShift) + (self.data[i - datumShift - 1] >> (64 - bitShift));
+        }
+
+        return from_array(arr);
+    }
+}
+
+impl Shr<u32> for U512 {
+    type Output = U512;
+
+    fn shr(self, rhs: u32) -> Self::Output {
+        let mut arr = [0u64; 8];
+        let datumShift = (rhs / 64) as usize;
+        let bitShift = rhs % 64;
+
+        arr[datumShift] = self.data[0] << bitShift;
+        for i in 0..(8 - datumShift - 1) {
+            arr[i] = (self.data[i + datumShift] >> bitShift) + (self.data[i + datumShift + 1] << (64 - bitShift));
+        }
+        arr[8 - datumShift - 1] = self.data[7] >>  bitShift;
+
+        return from_array(arr);
+    }
+}
+
 impl Display for U512 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{:?}", self.data)
@@ -299,26 +334,8 @@ mod tests {
                     c2 = c2 + a2;
                 }
                 // a2 = a2 + a2;
-                a2 = U512::from_array([
-                    (a2.data[0] << 1),
-                    (a2.data[1] << 1) + (a2.data[0] >> 63),
-                    (a2.data[2] << 1) + (a2.data[1] >> 63),
-                    (a2.data[3] << 1) + (a2.data[2] >> 63),
-                    (a2.data[4] << 1) + (a2.data[3] >> 63),
-                    (a2.data[5] << 1) + (a2.data[4] >> 63),
-                    (a2.data[6] << 1) + (a2.data[5] >> 63),
-                    (a2.data[7] << 1) + (a2.data[6] >> 63),
-                ]);
-                b2 = U512::from_array([
-                    (b2.data[0] >> 1) + ((b2.data[1] % 2) << 63),
-                    (b2.data[1] >> 1) + ((b2.data[2] % 2) << 63),
-                    (b2.data[2] >> 1) + ((b2.data[3] % 2) << 63),
-                    (b2.data[3] >> 1) + ((b2.data[4] % 2) << 63),
-                    (b2.data[4] >> 1) + ((b2.data[5] % 2) << 63),
-                    (b2.data[5] >> 1) + ((b2.data[6] % 2) << 63),
-                    (b2.data[6] >> 1) + ((b2.data[7] % 2) << 63),
-                    (b2.data[7] >> 1),
-                ]);
+                a2 = a2 << 1;
+                b2 = b2 >> 1;
             }
 
             assert_eq!(c, c2, "Testing multiplying {} and {}", a, b);
