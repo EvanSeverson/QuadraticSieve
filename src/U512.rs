@@ -9,72 +9,29 @@ use std::fmt::{Display, Formatter, Error};
 #[derive(Eq, PartialEq)]
 #[derive(PartialOrd)]
 pub struct U512 {
-    x7: u64,
-    x6: u64,
-    x5: u64,
-    x4: u64,
-    x3: u64,
-    x2: u64,
-    x1: u64,
-    x0: u64,
+    data: [u64; 8]
 }
 
 impl U512 {
-    pub fn asArray(&self) -> [u64; 8] {
-        return [self.x7, self.x6, self.x5, self.x4, self.x3, self.x2, self.x1, self.x0, ];
+    pub fn as_array(&self) -> [u64; 8] {
+        return self.data;
     }
 
-    pub fn fromArray(arr: [u64; 8]) -> U512 {
-        return U512{
-            x7: arr[0],
-            x6: arr[1],
-            x5: arr[2],
-            x4: arr[3],
-            x3: arr[4],
-            x2: arr[5],
-            x1: arr[6],
-            x0: arr[7],
-        }
+    pub fn from_array(arr: [u64; 8]) -> U512 {
+        return U512{data: arr};
     }
 
     pub fn from(x: u128) -> U512 {
-        return U512{
-            x7: 0,
-            x6: 0,
-            x5: 0,
-            x4: 0,
-            x3: 0,
-            x2: 0,
-            x1: (x >> 64) as u64,
-            x0: x as u64,
-        }
+        return U512{data: [x as u64, (x >> 64) as u64, 0, 0, 0, 0, 0, 0, ]}
     }
 }
 
-pub fn fromArray(arr: [u64; 8]) -> U512 {
-    return U512{
-        x7: arr[0],
-        x6: arr[1],
-        x5: arr[2],
-        x4: arr[3],
-        x3: arr[4],
-        x2: arr[5],
-        x1: arr[6],
-        x0: arr[7],
-    }
+pub fn from_array(arr: [u64; 8]) -> U512 {
+    return U512{data: arr}
 }
 
 pub fn from(x: u128) -> U512 {
-    return U512{
-        x7: 0,
-        x6: 0,
-        x5: 0,
-        x4: 0,
-        x3: 0,
-        x2: 0,
-        x1: (x >> 64) as u64,
-        x0: x as u64,
-    }
+    return U512{data: [x as u64, (x >> 64) as u64, 0, 0, 0, 0, 0, 0, ]}
 }
 
 impl Integer for U512 {
@@ -149,13 +106,13 @@ impl Add<U512> for U512 {
     type Output = U512;
 
     fn add(self, rhs: U512) -> Self::Output {
-        let x = self.asArray();
-        let y = rhs.asArray();
+        let x = self.as_array();
+        let y = rhs.as_array();
 
         let mut z: [u64; 8] = [0; 8];
         
         let mut carry_val: u64 = 0;
-        for i in (0..8).rev() {
+        for i in 0..8 {
             let (zi, carry) = x[i].overflowing_add(y[i]);
             let (zi, carry2) = zi.overflowing_add(carry_val);
             z[i] = zi;
@@ -165,7 +122,7 @@ impl Add<U512> for U512 {
             };
         }
         
-        return fromArray(z);
+        return from_array(z);
     }
 }
 
@@ -177,15 +134,15 @@ impl Mul<U512> for U512 {
         if self == zero || rhs == zero {
             return zero;
         }
-        let x = self.asArray();
-        let y = rhs.asArray();
+        let x = self.as_array();
+        let y = rhs.as_array();
 
         let mut z: [u64; 8] = [0; 8];
 
         let mut carry_val: u128 = 0;
-        for i in (0..8).rev() {
-            for j in ((7 - i)..8).rev() {
-                let k = i + j - 7;
+        for i in 0..8 {
+            for j in 0..(8 - i) {
+                let k = i + j;
                 carry_val = (x[i] as u128) * (y[j] as u128) + (z[k] as u128) + carry_val;
 
                 z[k] = carry_val as u64;
@@ -193,7 +150,7 @@ impl Mul<U512> for U512 {
             }
             carry_val = 0;
         }
-        return fromArray(z);
+        return from_array(z);
     }
 }
 
@@ -201,13 +158,13 @@ impl Sub for U512 {
     type Output = U512;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let x = self.asArray();
-        let y = rhs.asArray();
+        let x = self.as_array();
+        let y = rhs.as_array();
 
         let mut z: [u64; 8] = [0; 8];
 
         let mut carry_val: u64 = 0;
-        for i in (0..8).rev() {
+        for i in 0..8 {
             let (zi, borrow) = x[i].overflowing_sub(y[i]);
             let (zi, borrow2) = zi.overflowing_sub(carry_val);
             z[i] = zi;
@@ -217,7 +174,7 @@ impl Sub for U512 {
             };
         }
 
-        return fromArray(z);
+        return from_array(z);
     }
 }
 
@@ -239,14 +196,13 @@ impl Rem for U512 {
 
 impl Display for U512 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        write!(f, "{},{},{},{},{},{},{},{}",
-               self.x7, self.x6, self.x5, self.x4, self.x3, self.x2, self.x1, self.x0)
+        write!(f, "{:?}", self.data)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::U512::{U512, from};
+    use crate::U512::U512;
 
     #[test]
     fn testAdditionU128() {
@@ -259,8 +215,8 @@ mod tests {
             let c = a + b;
             let c2 = a2 + b2;
 
-            assert_eq!(c as u64, c2.x0);
-            assert_eq!((c >> 64) as u64, c2.x1);
+            assert_eq!(c as u64, c2.data[0]);
+            assert_eq!((c >> 64) as u64, c2.data[1]);
 
             a = a.wrapping_mul(a).wrapping_add(1) % (1u128 << 63);
             b = b.wrapping_mul(b).wrapping_add(1) % (1u128 << 63);
@@ -283,8 +239,8 @@ mod tests {
             let c = a - b;
             let c2 = a2 - b2;
 
-            assert_eq!(c as u64, c2.x0);
-            assert_eq!((c >> 64) as u64, c2.x1);
+            assert_eq!(c as u64, c2.data[0]);
+            assert_eq!((c >> 64) as u64, c2.data[1]);
 
             a = a.wrapping_mul(a).wrapping_add(1) % (1u128 << 63);
             b = b.wrapping_mul(b).wrapping_add(1) % (1u128 << 63);
@@ -339,29 +295,29 @@ mod tests {
             let mut a2 = a;
             let mut b2 = b;
             while b2 > U512::from(0) {
-                if b2.x0 % 2 == 1 {
+                if b2.data[0] % 2 == 1 {
                     c2 = c2 + a2;
                 }
                 // a2 = a2 + a2;
-                a2 = U512::fromArray([
-                    (a2.x7 << 1) + (a2.x6 >> 63),
-                    (a2.x6 << 1) + (a2.x5 >> 63),
-                    (a2.x5 << 1) + (a2.x4 >> 63),
-                    (a2.x4 << 1) + (a2.x3 >> 63),
-                    (a2.x3 << 1) + (a2.x2 >> 63),
-                    (a2.x2 << 1) + (a2.x1 >> 63),
-                    (a2.x1 << 1) + (a2.x0 >> 63),
-                    (a2.x0 << 1),
+                a2 = U512::from_array([
+                    (a2.data[0] << 1),
+                    (a2.data[1] << 1) + (a2.data[0] >> 63),
+                    (a2.data[2] << 1) + (a2.data[1] >> 63),
+                    (a2.data[3] << 1) + (a2.data[2] >> 63),
+                    (a2.data[4] << 1) + (a2.data[3] >> 63),
+                    (a2.data[5] << 1) + (a2.data[4] >> 63),
+                    (a2.data[6] << 1) + (a2.data[5] >> 63),
+                    (a2.data[7] << 1) + (a2.data[6] >> 63),
                 ]);
-                b2 = U512::fromArray([
-                    (b2.x7 >> 1),
-                    (b2.x6 >> 1) + ((b2.x7 % 2) << 63),
-                    (b2.x5 >> 1) + ((b2.x6 % 2) << 63),
-                    (b2.x4 >> 1) + ((b2.x5 % 2) << 63),
-                    (b2.x3 >> 1) + ((b2.x4 % 2) << 63),
-                    (b2.x2 >> 1) + ((b2.x3 % 2) << 63),
-                    (b2.x1 >> 1) + ((b2.x2 % 2) << 63),
-                    (b2.x0 >> 1) + ((b2.x1 % 2) << 63),
+                b2 = U512::from_array([
+                    (b2.data[0] >> 1) + ((b2.data[1] % 2) << 63),
+                    (b2.data[1] >> 1) + ((b2.data[2] % 2) << 63),
+                    (b2.data[2] >> 1) + ((b2.data[3] % 2) << 63),
+                    (b2.data[3] >> 1) + ((b2.data[4] % 2) << 63),
+                    (b2.data[4] >> 1) + ((b2.data[5] % 2) << 63),
+                    (b2.data[5] >> 1) + ((b2.data[6] % 2) << 63),
+                    (b2.data[6] >> 1) + ((b2.data[7] % 2) << 63),
+                    (b2.data[7] >> 1),
                 ]);
             }
 
